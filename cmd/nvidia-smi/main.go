@@ -23,6 +23,8 @@ type nvidiaSmiArgs struct {
 	GpuUtil     int
 	GpuIdx      int
 	ProcessName string
+	MigProfile  string
+	MigGiId     int
 }
 
 type config struct {
@@ -80,6 +82,15 @@ func getNvidiaSmiArgs() []nvidiaSmiArgs {
 	}
 	if conf.Debug {
 		fmt.Printf("Received topology: %+v\n", nodeTopology)
+	}
+
+	migProfile := os.Getenv("MOCK_MIG_PROFILE")
+	if conf.Debug {
+		fmt.Printf("MIG profile: %s\n", migProfile)
+	}
+
+	if migProfile != "" {
+		return getMigArgs(nodeTopology, migProfile)
 	}
 
 	gpuPortion := 1.0
@@ -143,6 +154,60 @@ func getNvidiaSmiArgs() []nvidiaSmiArgs {
 	return allArgs
 }
 
+func getMigArgs(nodeTopology topology.NodeTopology, migProfile string) []nvidiaSmiArgs {
+	processName := readProcessName()
+
+	// Parse memory from profile name (e.g., "1g.18gb" -> 18 * 1024 = 18432 MiB)
+	migMem := 0
+	parts := strings.Split(migProfile, ".")
+	if len(parts) == 2 {
+		memStr := strings.TrimSuffix(parts[1], "gb")
+		if val, err := strconv.Atoi(memStr); err == nil {
+			migMem = val * 1024
+		}
+	}
+
+	// Parse GI slice count from profile (e.g., "1g" -> 1, "2g" -> 2, "3g" -> 3)
+	giId := 0
+	if len(parts) >= 1 {
+		giStr := strings.TrimSuffix(parts[0], "g")
+		if val, err := strconv.Atoi(giStr); err == nil {
+			switch val {
+			case 1:
+				giId = 19
+			case 2:
+				giId = 14
+			case 3:
+				giId = 9
+			case 4:
+				giId = 5
+			case 7:
+				giId = 0
+			}
+		}
+	}
+
+	visibleDevices := os.Getenv("MOCK_NVIDIA_VISIBLE_DEVICES")
+	deviceCount := 1
+	if visibleDevices != "" {
+		deviceCount = len(strings.Split(visibleDevices, ","))
+	}
+
+	var allArgs []nvidiaSmiArgs
+	for i := 0; i < deviceCount; i++ {
+		allArgs = append(allArgs, nvidiaSmiArgs{
+			GpuProduct:  nodeTopology.GpuProduct,
+			GpuTotalMem: migMem,
+			GpuIdx:      i,
+			ProcessName: processName,
+			MigProfile:  migProfile,
+			MigGiId:     giId,
+		})
+	}
+
+	return allArgs
+}
+
 func readProcessName() string {
 	cmdlineFile, err := os.Open("/proc/1/cmdline")
 	if err != nil {
@@ -168,6 +233,12 @@ func printArgs(allArgs []nvidiaSmiArgs) {
 		fmt.Println("Printing nvidia-smi output")
 	}
 
+	isMig := len(allArgs) > 0 && allArgs[0].MigProfile != ""
+	migMode := "N/A"
+	if isMig {
+		migMode = "Enabled"
+	}
+
 	fmt.Println(time.Now().Format(time.ANSIC))
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
@@ -177,13 +248,43 @@ func printArgs(allArgs []nvidiaSmiArgs) {
 	t.AppendRow(table.Row{"Fan  Temp  Perf  Pwr:Usage/Cap", "        Memory-Usage", "GPU-Util  Compute M."})
 	t.AppendRow(table.Row{"", "", "              MIG M."})
 	t.AppendSeparator()
-	for _, args := range allArgs {
-		t.AppendRow(table.Row{fmt.Sprintf("%s  %s%s", sizeString(strconv.Itoa(args.GpuIdx), 3, true), sizeString(args.GpuProduct, 12, false), sizeString("Off", 13, true)), fmt.Sprintf("%s %s", sizeString("00000001:00:00.0", 16, false), sizeString("Off", 3, true)), sizeString("Off", 20, true)})
-		t.AppendRow(table.Row{"N/A   33C    P8    11W /  70W", sizeString(fmt.Sprintf("%dMiB / %dMiB", int(args.GpuUsedMem), args.GpuTotalMem), 20, true), fmt.Sprintf("%s %s", sizeString(strconv.Itoa(args.GpuUtil)+"%", 8, true), sizeString("Default", 11, true))})
-		t.AppendRow(table.Row{"", "", sizeString("N/A", 20, true)})
+
+	if isMig {
+		t.AppendRow(table.Row{fmt.Sprintf("%s  %s%s", sizeString("0", 3, true), sizeString(allArgs[0].GpuProduct, 12, false), sizeString("Off", 13, true)), fmt.Sprintf("%s %s", sizeString("00000001:00:00.0", 16, false), sizeString("Off", 3, true)), sizeString("On", 20, true)})
+		t.AppendRow(table.Row{"N/A   33C    P0    72W / 700W", sizeString(fmt.Sprintf("0MiB / %dMiB", allArgs[0].GpuTotalMem), 20, true), fmt.Sprintf("%s %s", sizeString("0%", 8, true), sizeString("Default", 11, true))})
+		t.AppendRow(table.Row{"", "", sizeString(migMode, 20, true)})
 		t.AppendSeparator()
+	} else {
+		for _, args := range allArgs {
+			t.AppendRow(table.Row{fmt.Sprintf("%s  %s%s", sizeString(strconv.Itoa(args.GpuIdx), 3, true), sizeString(args.GpuProduct, 12, false), sizeString("Off", 13, true)), fmt.Sprintf("%s %s", sizeString("00000001:00:00.0", 16, false), sizeString("Off", 3, true)), sizeString("Off", 20, true)})
+			t.AppendRow(table.Row{"N/A   33C    P8    11W /  70W", sizeString(fmt.Sprintf("%dMiB / %dMiB", int(args.GpuUsedMem), args.GpuTotalMem), 20, true), fmt.Sprintf("%s %s", sizeString(strconv.Itoa(args.GpuUtil)+"%", 8, true), sizeString("Default", 11, true))})
+			t.AppendRow(table.Row{"", "", sizeString("N/A", 20, true)})
+			t.AppendSeparator()
+		}
 	}
 	t.Render()
+
+	if isMig {
+		fmt.Printf("\n")
+		t = table.NewWriter()
+		t.SetOutputMirror(os.Stdout)
+		t.AppendRow(table.Row{"MIG devices:"})
+		t.AppendRow(table.Row{" GPU  GI  CI  MIG         Memory-Usage       Vol       Shared        "})
+		t.AppendRow(table.Row{"      ID  ID  Dev          BAR1-Usage        SM  Unc  CE ENC DEC OFA JPG"})
+		t.AppendRow(table.Row{"                                             ECC                       "})
+		t.AppendSeparator()
+		for _, args := range allArgs {
+			t.AppendRow(table.Row{fmt.Sprintf("   0  %s   0  %s   %s  %s   %s",
+				sizeString(strconv.Itoa(args.MigGiId), 3, true),
+				sizeString(strconv.Itoa(args.GpuIdx), 3, true),
+				sizeString(fmt.Sprintf("%dMiB / %dMiB", int(args.GpuUsedMem), args.GpuTotalMem), 20, true),
+				sizeString("16", 3, true),
+				sizeString("0", 3, true),
+			)})
+		}
+		t.AppendSeparator()
+		t.Render()
+	}
 
 	fmt.Printf("\n")
 
@@ -194,7 +295,15 @@ func printArgs(allArgs []nvidiaSmiArgs) {
 	t.AppendRow(table.Row{"       ID   ID                                                   Usage      "})
 	t.AppendSeparator()
 	for _, args := range allArgs {
-		t.AppendRow(table.Row{fmt.Sprintf(" %s   %s%s%s%s   %s %s", sizeString(strconv.Itoa(args.GpuIdx), 3, true), sizeString("N/A", 5, false), sizeString("N/A", 10, false), sizeString(strconv.Itoa(os.Getpid()), 6, false), sizeString("G", 4, true), sizeString(args.ProcessName, 29, false), sizeString(fmt.Sprintf("%dMiB", int(args.GpuUsedMem)), 11, true))})
+		giStr := "N/A"
+		if args.MigProfile != "" {
+			giStr = strconv.Itoa(args.MigGiId)
+		}
+		ciStr := "N/A"
+		if args.MigProfile != "" {
+			ciStr = "0"
+		}
+		t.AppendRow(table.Row{fmt.Sprintf(" %s   %s%s%s%s   %s %s", sizeString(strconv.Itoa(args.GpuIdx), 3, true), sizeString(giStr, 5, false), sizeString(ciStr, 10, false), sizeString(strconv.Itoa(os.Getpid()), 6, false), sizeString("C", 4, true), sizeString(args.ProcessName, 29, false), sizeString(fmt.Sprintf("%dMiB", int(args.GpuUsedMem)), 11, true))})
 	}
 	t.Render()
 }

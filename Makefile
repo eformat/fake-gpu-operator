@@ -10,6 +10,8 @@ DOCKER_BUILDX_PUSH_FLAG=$(if $(filter true,$(SHOULD_PUSH)),--push,)
 DOCKER_BUILDX_PLATFORMS?=linux/amd64,linux/arm64
 DOCKER_BUILDX_BUILDER?=fgo-multi-platform
 
+CONTAINER_ENGINE?=$(shell command -v podman 2>/dev/null || echo docker)
+
 OS?=linux
 ARCH?=amd64
 
@@ -33,6 +35,18 @@ image:
 		docker buildx build -t ${DOCKER_REPO_BASE}/$$component:${DOCKER_TAG} --target $$component --platform ${DOCKER_BUILDX_PLATFORMS} ${DOCKER_BUILDX_PUSH_FLAG} .; \
 	done
 .PHONY: image
+
+podman-image:
+	for component in $(COMPONENTS); do \
+		$(CONTAINER_ENGINE) build -t ${DOCKER_REPO_BASE}/$$component:${DOCKER_TAG} --target $$component .; \
+	done
+.PHONY: podman-image
+
+podman-push:
+	for component in $(COMPONENTS); do \
+		$(CONTAINER_ENGINE) push ${DOCKER_REPO_BASE}/$$component:${DOCKER_TAG}; \
+	done
+.PHONY: podman-push
 
 test: ginkgo
 	$(GINKGO) ./internal/... ./cmd/... --procs=1 --output-dir=/tmp/artifacts/test-results/service-tests  --compilers=1 --randomize-all --randomize-suites --fail-on-pending  --keep-going --timeout=5m --race --trace  --json-report=report.json
