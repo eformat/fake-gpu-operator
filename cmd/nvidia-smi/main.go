@@ -97,8 +97,6 @@ func getNvidiaSmiArgs() (args []nvidiaSmiArgs, summary string, errs []error) {
 		fmt.Printf("Received topology: %+v\n", nodeTopology)
 	}
 
-	// gpuPortion only affects reported memory; a bad RUNAI_NUM_OF_GPUS is
-	// non-fatal — keep the default and still render the table.
 	gpuPortion := 1.0
 	numOfGpus := os.Getenv("RUNAI_NUM_OF_GPUS")
 	if numOfGpus != "" {
@@ -119,11 +117,7 @@ func getNvidiaSmiArgs() (args []nvidiaSmiArgs, summary string, errs []error) {
 		fmt.Printf("Current pod name: %s, UUID: %s\n", currentPodName, currentPodUuid)
 	}
 
-	// A missing process name only blanks one table column — non-fatal.
-	processName, err := readProcessName()
-	if err != nil {
-		errs = append(errs, err)
-	}
+	processName := readProcessName()
 
 	var allArgs []nvidiaSmiArgs
 	for idx, gpu := range nodeTopology.Gpus {
@@ -162,10 +156,10 @@ func getNvidiaSmiArgs() (args []nvidiaSmiArgs, summary string, errs []error) {
 		})
 	}
 
-	return allArgs, "", errs
+	return allArgs
 }
 
-func readProcessName() (string, error) {
+func readProcessName() string {
 	cmdlineFile, err := os.Open("/proc/1/cmdline")
 	if err != nil {
 		return "", fmt.Errorf("opening /proc/1/cmdline: %w", err)
@@ -181,7 +175,7 @@ func readProcessName() (string, error) {
 		return "", fmt.Errorf("reading /proc/1/cmdline: %w", err)
 	}
 
-	return string(bytes.Trim(cmdlineBytes, "\x00")), nil
+	return string(bytes.Trim(cmdlineBytes, "\x00"))
 }
 
 func printArgs(allArgs []nvidiaSmiArgs) {
