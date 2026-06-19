@@ -128,6 +128,16 @@ func migInstanceNameToGpuInstanceId(gpuProduct string, migInstanceName string) (
 			"2g.35gb": 14,
 			"3g.71gb": 9,
 		}[migInstanceName]
+	case strings.Contains(gpuProduct, "GB200"):
+		gpuInstanceId, ok = map[string]int{
+			"1g.10gb":    19,
+			"1g.10gb+me": 20,
+			"1g.20gb":    15,
+			"2g.20gb":    14,
+			"3g.40gb":    9,
+			"4g.40gb":    5,
+			"7g.80gb":    0,
+		}[migInstanceName]
 	default:
 		return -1, fmt.Errorf("gpuProduct %s not supported", gpuProduct)
 	}
