@@ -175,13 +175,17 @@ func (m *RealNodeDevicePlugin) GetPreferredAllocation(context.Context, *pluginap
 func (m *RealNodeDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	responses := pluginapi.AllocateResponse{}
 	for _, req := range reqs.ContainerRequests {
+		envs := map[string]string{
+			"MOCK_NVIDIA_VISIBLE_DEVICES": strings.Join(req.DevicesIds, ","),
+			constants.EnvNodeName:         os.Getenv(constants.EnvNodeName),
+		}
+
+		if strings.HasPrefix(m.resourceName, "nvidia.com/mig-") {
+			envs["MOCK_MIG_PROFILE"] = strings.TrimPrefix(m.resourceName, "nvidia.com/mig-")
+		}
+
 		response := pluginapi.ContainerAllocateResponse{
-			Envs: map[string]string{
-				"MOCK_NVIDIA_VISIBLE_DEVICES": strings.Join(req.DevicesIds, ","),
-				// Propagate NODE_NAME (from the DaemonSet's downward API) so the workload's
-				// nvidia-smi can resolve its node topology.
-				constants.EnvNodeName: os.Getenv(constants.EnvNodeName),
-			},
+			Envs: envs,
 			Mounts: []*pluginapi.Mount{
 				{
 					ContainerPath: "/bin/nvidia-smi",

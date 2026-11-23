@@ -122,6 +122,52 @@ func migInstanceNameToGpuInstanceId(gpuProduct string, migInstanceName string) (
 			"4g.40gb":    5,
 			"7g.80gb":    0,
 		}[migInstanceName]
+	case strings.Contains(gpuProduct, "H200"):
+		gpuInstanceId, ok = map[string]int{
+			"1g.18gb": 19,
+			"2g.35gb": 14,
+			"3g.71gb": 9,
+		}[migInstanceName]
+	case strings.Contains(gpuProduct, "GB200"):
+		gpuInstanceId, ok = map[string]int{
+			"1g.23gb":    19,
+			"1g.23gb+me": 20,
+			"1g.47gb":    15,
+			"2g.47gb":    14,
+			"3g.93gb":    9,
+			"4g.93gb":    5,
+			"7g.189gb":   0,
+		}[migInstanceName]
+	case strings.Contains(gpuProduct, "GB300"):
+		gpuInstanceId, ok = map[string]int{
+			"1g.35gb":    19,
+			"1g.35gb+me": 20,
+			"1g.70gb":    15,
+			"2g.70gb":    14,
+			"3g.139gb":   9,
+			"4g.139gb":   5,
+			"7g.278gb":   0,
+		}[migInstanceName]
+	case strings.Contains(gpuProduct, "B300"):
+		gpuInstanceId, ok = map[string]int{
+			"1g.34gb":    19,
+			"1g.34gb+me": 20,
+			"1g.67gb":    15,
+			"2g.67gb":    14,
+			"3g.135gb":   9,
+			"4g.135gb":   5,
+			"7g.269gb":   0,
+		}[migInstanceName]
+	case strings.Contains(gpuProduct, "Rubin"), strings.Contains(gpuProduct, "VR200"):
+		gpuInstanceId, ok = map[string]int{
+			"1g.35gb":    19,
+			"1g.35gb+me": 20,
+			"1g.70gb":    15,
+			"2g.70gb":    14,
+			"3g.139gb":   9,
+			"4g.139gb":   5,
+			"7g.278gb":   0,
+		}[migInstanceName]
 	default:
 		return -1, fmt.Errorf("gpuProduct %s not supported", gpuProduct)
 	}
