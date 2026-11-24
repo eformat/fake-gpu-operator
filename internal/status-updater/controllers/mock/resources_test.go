@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/run-ai/fake-gpu-operator/internal/common/constants"
+	commonprofile "github.com/run-ai/fake-gpu-operator/internal/common/profile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -18,14 +19,14 @@ func TestBuildConfigMap(t *testing.T) {
 	assert.Equal(t, constants.ComponentNvmlMock, cm.Labels[constants.LabelComponent])
 	assert.Equal(t, "training", cm.Labels[constants.LabelPool])
 	assert.Equal(t, "driver_version: \"550\"", cm.Data["config.yaml"])
-	assert.NotContains(t, cm.Data, "mig-profiles.yaml", "no MIG table must land without one")
+	assert.NotContains(t, cm.Data, commonprofile.CmMigProfilesKey, "no MIG table must land without one")
 }
 
 func TestBuildConfigMap_WithMigTable(t *testing.T) {
 	cm := BuildConfigMap("ns", "training", []byte("driver_version: \"550\""), []byte("version: 1\nsupported_profiles: []"))
 
 	assert.Equal(t, "driver_version: \"550\"", cm.Data["config.yaml"])
-	assert.Equal(t, "version: 1\nsupported_profiles: []", cm.Data["mig-profiles.yaml"],
+	assert.Equal(t, "version: 1\nsupported_profiles: []", cm.Data[commonprofile.CmMigProfilesKey],
 		"the MIG table renders as the sibling file the Mokka engine resolves")
 }
 

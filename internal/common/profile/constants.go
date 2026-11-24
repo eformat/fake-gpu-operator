@@ -18,12 +18,13 @@ const (
 	CmMigProfilesPrefix = "mig-profiles-"
 
 	// CmMigProfilesKey is the data key inside MIG profile-table ConfigMaps.
-	// The key name matters: the per-pool mock ConfigMap is mounted at
-	// /etc/nvml-mock, and the engine resolves the table "as a sibling of the
-	// config path" — so the per-pool ConfigMap carries the table under this
-	// key (rendered next to config.yaml) even though the table's own
-	// ConfigMap uses it too.
-	CmMigProfilesKey = "mig-profiles.yaml"
+	// The key name matters twice: the per-pool mock ConfigMap is mounted at
+	// /etc/nvml-mock and the engine resolves the table by replacing the
+	// config's extension — config.yaml -> config.mig.yaml — so the per-pool
+	// ConfigMap carries the table under this exact key for the sibling
+	// lookup to find it. The table's own ConfigMap uses the same key for
+	// symmetry.
+	CmMigProfilesKey = "config.mig.yaml"
 
 	// LabelMigProfiles marks MIG profile-table ConfigMaps (chart-owned,
 	// read by the mock controller by name). Deliberately NOT the mock

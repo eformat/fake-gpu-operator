@@ -131,7 +131,7 @@ func TestDiffConfigMaps_UpdateOnMigTableChange(t *testing.T) {
 	existing := BuildConfigMap("ns", "a", []byte("body1"), nil)
 	existing.ResourceVersion = "13"
 	d := DiffConfigMaps([]*corev1.ConfigMap{desired}, []corev1.ConfigMap{*existing})
-	require.Len(t, d.ToUpdate, 1, "missing mig-profiles.yaml key must count as a data change")
+	require.Len(t, d.ToUpdate, 1, "missing config.mig.yaml key must count as a data change")
 }
 
 func TestDiffConfigMaps_Delete(t *testing.T) {

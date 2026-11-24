@@ -146,12 +146,12 @@ device_defaults:
 
 	migCM := byName["nvml-mock-dra-mig"]
 	require.NotNil(t, migCM)
-	assert.Contains(t, migCM.Data["mig-profiles.yaml"], "1g.5gb",
+	assert.Contains(t, migCM.Data[commonprofile.CmMigProfilesKey], "1g.5gb",
 		"MIG-mode pool carries the product table as the sibling file")
 
 	shareCM := byName["nvml-mock-dra-share"]
 	require.NotNil(t, shareCM)
-	assert.NotContains(t, shareCM.Data, "mig-profiles.yaml",
+	assert.NotContains(t, shareCM.Data, commonprofile.CmMigProfilesKey,
 		"a pool without MIG mode stays MIG-less even if a table existed")
 }
 
@@ -178,5 +178,5 @@ device_defaults:
 	configMaps, _, err := ComputeMockPoolResources(kube, cfg, ReconcileParams{Namespace: "ns"})
 	require.NoError(t, err)
 	require.Len(t, configMaps, 1)
-	assert.NotContains(t, configMaps[0].Data, "mig-profiles.yaml")
+	assert.NotContains(t, configMaps[0].Data, commonprofile.CmMigProfilesKey)
 }

@@ -20,10 +20,11 @@ const (
 	configKey = "config.yaml"
 
 	// migProfilesKey is the optional second data key in the per-pool
-	// ConfigMap: the product's MIG partition table, rendered as the sibling
-	// file (/etc/nvml-mock/mig-profiles.yaml) that nvml-mock >= v0.2 (Mokka)
-	// resolves the table from when MOCK_MIG_PROFILES_CONFIG is unset.
-	migProfilesKey = "mig-profiles.yaml"
+	// ConfigMap: the product's MIG partition table, rendered under the name
+	// the engine derives for the sibling of config.yaml — config.mig.yaml
+	// (extension replacement; nvml-mock >= v0.2 / Mokka resolves it there
+	// when MOCK_MIG_PROFILES_CONFIG is unset).
+	migProfilesKey = "config.mig.yaml"
 )
 
 // resourceName produces the per-pool resource name shared by the DaemonSet
@@ -43,7 +44,7 @@ func managedLabels(pool string) map[string]string {
 
 // BuildConfigMap produces the per-pool nvml-mock ConfigMap whose `config.yaml`
 // key is mounted into the DaemonSet at /etc/nvml-mock/config.yaml. When
-// migTableYAML is non-empty it is added under mig-profiles.yaml — the
+// migTableYAML is non-empty it is added under config.mig.yaml — the
 // "sibling of the config path" nvml-mock >= v0.2 (Mokka) resolves the board's
 // MIG partition table from at load time.
 func BuildConfigMap(namespace, pool string, configYAML, migTableYAML []byte) *corev1.ConfigMap {

@@ -60,7 +60,7 @@ func MigEnabled(merged map[string]interface{}) bool {
 
 // LoadMigTable reads the MIG profile-table ConfigMap for a profile
 // ("mig-profiles-<profile>"), returning the raw table YAML for the per-pool
-// mock ConfigMap's mig-profiles.yaml key. nvml-mock >= v0.2 (Mokka) resolves
+// mock ConfigMap's config.mig.yaml key. nvml-mock >= v0.2 (Mokka) resolves
 // the table at load time via $MOCK_MIG_PROFILES_CONFIG or "as a sibling of
 // the config path" — the per-pool ConfigMap mount at /etc/nvml-mock makes the
 // rendered sibling file exactly that, no extra volume or env needed.

@@ -84,7 +84,7 @@ func daemonsetNeedsUpdate(want, have *appsv1.DaemonSet) bool {
 }
 
 // DiffConfigMaps compares desired vs actual ConfigMaps. Update fires when
-// any data key differs — config.yaml or mig-profiles.yaml (a table-only
+// any data key differs — config.yaml or config.mig.yaml (a table-only
 // change must still update the CM even though config.yaml is unchanged).
 func DiffConfigMaps(desired []*corev1.ConfigMap, actual []corev1.ConfigMap) ConfigMapDiff {
 	desiredByName := make(map[string]*corev1.ConfigMap, len(desired))

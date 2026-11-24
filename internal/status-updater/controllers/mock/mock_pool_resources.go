@@ -75,7 +75,7 @@ func ComputeMockPoolResources(
 		spec := commonprofile.Extract(merged)
 
 		// Pools whose profile turns MIG mode on also get the product's MIG
-		// profile table, rendered as the sibling file (mig-profiles.yaml)
+		// profile table, rendered as the sibling file (config.mig.yaml)
 		// next to config.yaml that nvml-mock >= v0.2 resolves it from.
 		var migTableYAML []byte
 		if MigEnabled(merged) {
