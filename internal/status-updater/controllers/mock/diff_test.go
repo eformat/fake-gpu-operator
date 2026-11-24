@@ -124,6 +124,16 @@ func TestDiffConfigMaps_NoOp(t *testing.T) {
 	assert.Empty(t, d.ToDelete)
 }
 
+func TestDiffConfigMaps_UpdateOnMigTableChange(t *testing.T) {
+	// A table-only change (config.yaml identical) must still update the CM —
+	// e.g. the MIG table appearing for a pool whose mode just flipped on.
+	desired := BuildConfigMap("ns", "a", []byte("body1"), []byte("version: 1\nsupported_profiles: []"))
+	existing := BuildConfigMap("ns", "a", []byte("body1"), nil)
+	existing.ResourceVersion = "13"
+	d := DiffConfigMaps([]*corev1.ConfigMap{desired}, []corev1.ConfigMap{*existing})
+	require.Len(t, d.ToUpdate, 1, "missing mig-profiles.yaml key must count as a data change")
+}
+
 func TestDiffConfigMaps_Delete(t *testing.T) {
 	actual := []corev1.ConfigMap{*newCM("nvml-mock-old", "body1")}
 	d := DiffConfigMaps(nil, actual)

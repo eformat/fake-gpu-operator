@@ -42,6 +42,7 @@ const (
 	EnvPrometheusURL                   = "PROMETHEUS_URL"
 	EnvDisableNodeLabeling             = "DISABLE_NODE_LABELING"
 	EnvNvmlMockImage                   = "NVML_MOCK_IMAGE"
+	EnvNvmlMockLaunchContract          = "NVML_MOCK_LAUNCH_CONTRACT"
 	EnvRunaiIntegrationEnabled         = "RUNAI_INTEGRATION_ENABLED"
 	EnvRunaiIntegrationPollingInterval = "RUNAI_INTEGRATION_POLLING_INTERVAL"
 	EnvNodeResourceTopologyEnabled     = "NODE_RESOURCE_TOPOLOGY_ENABLED"

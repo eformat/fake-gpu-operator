@@ -86,6 +86,7 @@ func (app *StatusUpdaterApp) Init(stopCh chan struct{}) {
 		mockcontroller.NewMockController(app.kubeClient, mockcontroller.ReconcileParams{
 			Namespace:       viper.GetString(constants.EnvFakeGpuOperatorNs),
 			Image:           viper.GetString(constants.EnvNvmlMockImage),
+			LaunchContract:  viper.GetString(constants.EnvNvmlMockLaunchContract),
 			ImagePullPolicy: pullPolicy,
 		}))
 

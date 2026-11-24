@@ -82,7 +82,7 @@ func TestReconcile_PoolRemoved_DeletesResources(t *testing.T) {
 		Namespace: "ns", Pool: "old", NodePoolLabelKey: "k",
 		Image: "img", ImagePullPolicy: corev1.PullAlways, ConfigHash: "h",
 	})
-	preexistingCM := BuildConfigMap("ns", "old", []byte("body"))
+	preexistingCM := BuildConfigMap("ns", "old", []byte("body"), nil)
 
 	kube := fake.NewSimpleClientset(
 		makeTopologyCM(t, "ns", cfg),

@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"maps"
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -83,7 +84,8 @@ func daemonsetNeedsUpdate(want, have *appsv1.DaemonSet) bool {
 }
 
 // DiffConfigMaps compares desired vs actual ConfigMaps. Update fires when
-// data["config.yaml"] differs.
+// any data key differs — config.yaml or mig-profiles.yaml (a table-only
+// change must still update the CM even though config.yaml is unchanged).
 func DiffConfigMaps(desired []*corev1.ConfigMap, actual []corev1.ConfigMap) ConfigMapDiff {
 	desiredByName := make(map[string]*corev1.ConfigMap, len(desired))
 	for _, cm := range desired {
@@ -101,7 +103,7 @@ func DiffConfigMaps(desired []*corev1.ConfigMap, actual []corev1.ConfigMap) Conf
 			d.ToCreate = append(d.ToCreate, want)
 			continue
 		}
-		if want.Data["config.yaml"] != have.Data["config.yaml"] {
+		if !maps.Equal(want.Data, have.Data) {
 			want.ResourceVersion = have.ResourceVersion
 			d.ToUpdate = append(d.ToUpdate, want)
 		}
