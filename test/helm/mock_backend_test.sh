@@ -95,21 +95,21 @@ echo "=== Case 2: gpuOperator.enabled=true, nvidiaDraDriver.enabled=false ==="
 render --set gpuOperator.enabled=true
 assert_absent   "polyfill suppressed when subchart on"    "image: ubuntu:22.04"
 assert_contains "GPU Operator subchart present"           "^kind: ClusterPolicy"
-assert_absent   "DRA driver subchart absent"              "nvidia-dra-driver-gpu-kubelet-plugin"
+assert_absent   "DRA driver subchart absent"              "dra-driver-nvidia-gpu-kubelet-plugin"
 assert_contains "nvml-mock SA present"                    "name: nvml-mock$"
 assert_contains "NVML_MOCK_IMAGE env present"             "NVML_MOCK_IMAGE"
 
 echo "=== Case 3: gpuOperator.enabled=false, nvidiaDraDriver.enabled=true ==="
 render_dra --set nvidiaDraDriver.enabled=true
 assert_contains "polyfill still rendered (real GPU Op absent)" "image: ubuntu:22.04"
-assert_contains "DRA driver subchart present"             "nvidia-dra-driver-gpu-kubelet-plugin"
+assert_contains "DRA driver subchart present"             "dra-driver-nvidia-gpu-kubelet-plugin"
 assert_contains "nvml-mock SA present"                    "name: nvml-mock$"
 
 echo "=== Case 4: both toggles true ==="
 render_dra --set gpuOperator.enabled=true --set nvidiaDraDriver.enabled=true
 assert_absent   "polyfill suppressed"                     "image: ubuntu:22.04"
 assert_contains "GPU Operator subchart present"           "^kind: ClusterPolicy"
-assert_contains "DRA driver subchart present"             "nvidia-dra-driver-gpu-kubelet-plugin"
+assert_contains "DRA driver subchart present"             "dra-driver-nvidia-gpu-kubelet-plugin"
 
 echo "=== Case 5: user override under gpu-operator: subchart key wins ==="
 # Verify a user override on a non-mandatory key (devicePlugin.repository) flows
