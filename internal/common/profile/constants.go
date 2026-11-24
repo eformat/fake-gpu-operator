@@ -24,4 +24,11 @@ const (
 	// key (rendered next to config.yaml) even though the table's own
 	// ConfigMap uses it too.
 	CmMigProfilesKey = "mig-profiles.yaml"
+
+	// LabelMigProfiles marks MIG profile-table ConfigMaps (chart-owned,
+	// read by the mock controller by name). Deliberately NOT the mock
+	// controller's managed label pair — the reconciler prunes anything
+	// matching managed-by+component=nvml-mock that isn't in its desired
+	// set, and the tables are chart-managed like the profiles themselves.
+	LabelMigProfiles = "fake-gpu-operator/mig-profiles"
 )
