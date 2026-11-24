@@ -322,7 +322,20 @@ gpu-operator:
           value: "/run/nvidia/driver/usr/lib64"
 
 # Mirrors nvml-mock README's DRA recipe.
-nvidia-dra-driver-gpu:
+# Subchart renamed upstream: nvidia-dra-driver-gpu (<=25.12.0, last NGC
+# release) became dra-driver-nvidia-gpu (>=0.4.0). 0.5.1 is the release
+# verified end-to-end on OCP 5 (k8s 1.36) and the first NGC release with
+# the ConsumableShares alpha gate. 25.12.0 predates it — do not downgrade.
+# To enable consumable shares (e.g. 4 shares per device), consumers set:
+#   dra-driver-nvidia-gpu:
+#     consumableShares: "4"        # mode: "memory", "unlimited", or a positive
+#                                  # integer → CONSUMABLE_SHARES env on the
+#                                  # kubelet plugin's gpus container
+#     featureGates:
+#       ConsumableShares: true     # alpha; requires k8s >= 1.36, where
+#                                  # DRAConsumableCapacity is default-on
+# Both default to off here — enabling them is a consumer decision.
+dra-driver-nvidia-gpu:
   nvidiaDriverRoot: /var/lib/nvml-mock/driver
   gpuResourcesEnabledOverride: true
   resources:

@@ -155,12 +155,12 @@ if [ "$(date +%s)" -ge "$DEADLINE" ]; then
     exit 1
 fi
 
-echo "==> Waiting for nvidia-dra-driver-gpu kubelet plugin ready..."
+echo "==> Waiting for dra-driver-nvidia-gpu kubelet plugin ready..."
 # Cold-setup observation: this DaemonSet's first pod can take 3+ minutes to
 # go Ready because the kubelet plugin probes the driver root via getDevRoot()
 # at startup and may briefly read "/" before nvml-mock's bind mounts settle,
 # then restart. 6 minutes covers that worst case.
-kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=nvidia-dra-driver-gpu -n gpu-operator --timeout=360s
+kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=dra-driver-nvidia-gpu -n gpu-operator --timeout=360s
 
 # === Install KWOK + inject the fake-default fake node ===
 echo "==> Installing KWOK controller..."

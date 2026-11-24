@@ -8,8 +8,9 @@
 #                               emitted by the real gpu-operator subchart; the polyfill
 #                               CRD definition does NOT emit this resource kind at the
 #                               top level.
-#   nvidia-dra-driver-gpu:      "nvidia-dra-driver-gpu-kubelet-plugin" — a DaemonSet
-#                               name that only exists when the DRA subchart renders.
+#   dra-driver-nvidia-gpu:      "dra-driver-nvidia-gpu-kubelet-plugin" — a
+#                               DaemonSet name that only exists when the DRA
+#                               subchart renders.
 #
 # NOTE: assert functions write rendered output to a temp file before grepping.
 # macOS BSD grep silently truncates very large strings piped via `echo "$var"`,
@@ -86,7 +87,7 @@ assert_contains "polyfill placeholder Deployment renders" "image: ubuntu:22.04"
 # GPU operator subchart absent: ClusterPolicy CR would only appear if subchart ran
 assert_absent   "GPU Operator subchart absent"            "^kind: ClusterPolicy"
 # DRA subchart absent: kubelet-plugin DaemonSet name unique to that subchart
-assert_absent   "DRA driver subchart absent"              "nvidia-dra-driver-gpu-kubelet-plugin"
+assert_absent   "DRA driver subchart absent"              "dra-driver-nvidia-gpu-kubelet-plugin"
 # nvml-mock ServiceAccount gated on either subchart toggle being true
 assert_absent   "nvml-mock SA absent"                     "name: nvml-mock$"
 

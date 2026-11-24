@@ -30,10 +30,10 @@ var _ = Describe("Phase 2: DRA path (worker-2 / mock-b / h100)", func() {
 		}, 90*time.Second, 2*time.Second).Should(Succeed())
 	})
 
-	It("nvidia-dra-driver-gpu kubelet plugin Ready on worker-2", func() {
+	It("dra-driver-nvidia-gpu kubelet plugin Ready on worker-2", func() {
 		// Upstream chart uses a chart-specific label, not the standard
 		// app.kubernetes.io/component convention.
-		labelSelector := "nvidia-dra-driver-gpu-component=kubelet-plugin"
+		labelSelector := "dra-driver-nvidia-gpu-component=kubelet-plugin"
 		waitForPodReady(releaseNs, labelSelector, 3*time.Minute)
 
 		pods, err := kubeClient.CoreV1().Pods(releaseNs).List(context.Background(), metav1.ListOptions{

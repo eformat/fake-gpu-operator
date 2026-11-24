@@ -1,6 +1,6 @@
 # Helm values for the mock-pool e2e. Both subcharts coexist on one cluster
 # via per-component nodeSelector overrides (gpu-operator → worker-1,
-# nvidia-dra-driver-gpu → worker-2), sidestepping the kubelet-plugin conflict
+# dra-driver-nvidia-gpu → worker-2), sidestepping the kubelet-plugin conflict
 # for nvidia.com/gpu.
 
 environment:
@@ -90,7 +90,7 @@ gpu-operator:
     nodeSelector:
       run.ai/simulated-gpu-node-pool: mock-a
 
-nvidia-dra-driver-gpu:
+dra-driver-nvidia-gpu:
   kubeletPlugin:
     nodeSelector:
       run.ai/simulated-gpu-node-pool: mock-b
