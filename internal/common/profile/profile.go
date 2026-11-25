@@ -42,8 +42,13 @@ func Load(kubeClient kubernetes.Interface, namespace, profileName string) (map[s
 	return profile, nil
 }
 
-// Merge deep-merges overrides onto a base profile. Scalars and lists are replaced;
-// nested maps are recursively merged. Returns a new map (base is not modified).
+// Merge deep-merges overrides onto a base profile. Scalars are replaced;
+// nested maps are recursively merged; lists are replaced — with one
+// exception: the `devices` list merges by `index`, so a pool can override
+// one board's block (a MIG mode flip, say) without restating every device's
+// identity. That mirrors the engine's own per-device override semantics
+// (mergeDeviceOverride), which is what will consume the merged config.
+// Returns a new map (base is not modified).
 func Merge(base, overrides map[string]interface{}) map[string]interface{} {
 	if len(overrides) == 0 {
 		return copyMap(base)
@@ -57,6 +62,13 @@ func Merge(base, overrides map[string]interface{}) map[string]interface{} {
 			continue
 		}
 
+		if key == "devices" {
+			if merged, mergedOK := mergeDevicesByIndex(baseVal, overrideVal); mergedOK {
+				result[key] = merged
+				continue
+			}
+		}
+
 		baseMap, baseIsMap := baseVal.(map[string]interface{})
 		overrideMap, overrideIsMap := overrideVal.(map[string]interface{})
 		if baseIsMap && overrideIsMap {
@@ -67,6 +79,65 @@ func Merge(base, overrides map[string]interface{}) map[string]interface{} {
 	}
 
 	return result
+}
+
+// mergeDevicesByIndex merges two device lists by their `index` field — the
+// board coordinate the engine keys per-device overrides on. Base entries
+// keep their identity (uuid, serial, pci); an override entry deep-merges
+// over the base entry it names; override entries naming a board the base
+// does not declare are appended verbatim. Not-ok means either side is not a
+// list of maps with integer indices, and the caller falls back to list
+// replacement.
+func mergeDevicesByIndex(baseVal, overrideVal interface{}) ([]interface{}, bool) {
+	baseList, baseOK := baseVal.([]interface{})
+	overrideList, overrideOK := overrideVal.([]interface{})
+	if !baseOK || !overrideOK {
+		return nil, false
+	}
+
+	baseByIndex := map[int]int{}
+	for i, entry := range baseList {
+		m, ok := entry.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		idx, ok := toInt(m["index"])
+		if !ok {
+			return nil, false
+		}
+		baseByIndex[idx] = i
+	}
+
+	merged := make([]interface{}, len(baseList))
+	copy(merged, baseList)
+	for _, entry := range overrideList {
+		m, ok := entry.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		idx, ok := toInt(m["index"])
+		if !ok {
+			return nil, false
+		}
+		if i, exists := baseByIndex[idx]; exists {
+			merged[i] = Merge(baseList[i].(map[string]interface{}), m)
+			continue
+		}
+		merged = append(merged, entry)
+	}
+	return merged, true
+}
+
+// toInt converts the JSON numbers a profile map carries (float64 from
+// encoding/json, int from mapstructure-free literals) into an int.
+func toInt(v interface{}) (int, bool) {
+	switch n := v.(type) {
+	case int:
+		return n, true
+	case float64:
+		return int(n), true
+	}
+	return 0, false
 }
 
 // Extract pulls FGO-relevant fields from a resolved profile into a GpuSpec.

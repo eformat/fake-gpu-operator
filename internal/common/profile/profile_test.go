@@ -274,3 +274,78 @@ func TestExtract_MemoryAsInt(t *testing.T) {
 	spec := Extract(data)
 	assert.Equal(t, 16384, spec.GpuMemory)
 }
+
+// Per-device overrides patch the profile's boards by index: a pool flips one
+// board's MIG mode without restating every device's identity — the mixed-node
+// shape (4 whole + 4 MIG-on) the H200 mirror runs.
+func TestMerge_DevicesPatchByIndex(t *testing.T) {
+	base := map[string]interface{}{
+		"device_defaults": map[string]interface{}{
+			"mig": map[string]interface{}{"mode_current": "enabled"},
+		},
+		"devices": []interface{}{
+			map[string]interface{}{"index": 0, "uuid": "GPU-0", "serial": "s0"},
+			map[string]interface{}{"index": 1, "uuid": "GPU-1", "serial": "s1"},
+			map[string]interface{}{"index": 2, "uuid": "GPU-2", "serial": "s2"},
+			map[string]interface{}{"index": 3, "uuid": "GPU-3", "serial": "s3"},
+		},
+	}
+	overrides := map[string]interface{}{
+		"devices": []interface{}{
+			map[string]interface{}{
+				"index": 0,
+				"mig":   map[string]interface{}{"mode_current": "disabled"},
+			},
+			map[string]interface{}{
+				"index": 3,
+				"mig":   map[string]interface{}{"mode_current": "disabled"},
+			},
+		},
+	}
+
+	merged := Merge(base, overrides)
+	devs := merged["devices"].([]interface{})
+	if len(devs) != 4 {
+		t.Fatalf("device count changed: got %d, want 4", len(devs))
+	}
+
+	d0 := devs[0].(map[string]interface{})
+	if d0["uuid"] != "GPU-0" {
+		t.Errorf("patched device lost its identity: uuid=%v", d0["uuid"])
+	}
+	mig0 := d0["mig"].(map[string]interface{})
+	if mig0["mode_current"] != "disabled" {
+		t.Errorf("device 0 mode not overridden: %v", mig0)
+	}
+
+	// Untouched boards keep the inherited (enabled) default entirely.
+	if _, hasMig := devs[1].(map[string]interface{})["mig"]; hasMig {
+		t.Error("device 1 gained an override it never had")
+	}
+
+	d3 := devs[3].(map[string]interface{})
+	if d3["serial"] != "s3" {
+		t.Errorf("device 3 lost its serial: %v", d3["serial"])
+	}
+	if d3["mig"].(map[string]interface{})["mode_current"] != "disabled" {
+		t.Error("device 3 mode not overridden")
+	}
+
+	// The base is not modified.
+	baseDevs := base["devices"].([]interface{})
+	if _, hasMig := baseDevs[0].(map[string]interface{})["mig"]; hasMig {
+		t.Error("Merge mutated the base profile")
+	}
+}
+
+// An override list that is not index-keyed device maps falls back to list
+// replacement — the generic Merge contract, unchanged for other callers.
+func TestMerge_DevicesNonIndexedFallback(t *testing.T) {
+	base := map[string]interface{}{"devices": []interface{}{map[string]interface{}{"index": 0}}}
+	overrides := map[string]interface{}{"devices": []interface{}{"not-a-map"}}
+	merged := Merge(base, overrides)
+	devs := merged["devices"].([]interface{})
+	if len(devs) != 1 || devs[0] != "not-a-map" {
+		t.Errorf("non-indexed override: expected list replacement, got %v", devs)
+	}
+}
